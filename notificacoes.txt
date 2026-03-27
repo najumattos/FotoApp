@@ -1,0 +1,4 @@
+--Para exibir notificacoes
+npx expo install expo-notifications
+
+A notificação chegará em exatamente 20 minutos após você clicar no botão "SALVAR REGISTRO".
