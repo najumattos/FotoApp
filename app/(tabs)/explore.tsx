@@ -1,112 +1,145 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Image, FlatList, Dimensions } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useAnamnese } from '../_layout';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function AnamneseScreen() {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [mostrarCamera, setMostrarCamera] = useState(false);
+  const cameraRef = React.useRef<CameraView>(null);
+  
+  // Usando o contexto global e a função de adicionar
+  const { listaAnamnese, adicionarAnamnese } = useAnamnese();
 
-export default function TabTwoScreen() {
+  if (!permission?.granted) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity onPress={requestPermission} style={styles.botao}>
+          <Text>Liberar Câmera</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  async function tirarFoto() {
+    if (cameraRef.current) {
+      const foto = await cameraRef.current.takePictureAsync();
+      if (foto) {
+        // Criando um registro rápido sem descrição apenas para teste via botão +
+        const novo = {
+          id: Date.now(),
+          foto: foto.uri,
+          descricao: "Captura rápida da galeria"
+        };
+        adicionarAnamnese(novo);
+        setMostrarCamera(false);
+      }
+    }
+  }
+
+  if (mostrarCamera) {
+    return (
+      <CameraView style={{ flex: 1 }} ref={cameraRef}>
+        <View style={styles.overlayCamera}>
+          <TouchableOpacity style={styles.botaoCaptura} onPress={tirarFoto}>
+            <Text style={{ fontWeight: 'bold' }}>TIRAR</Text>
+          </TouchableOpacity>
+        </View>
+      </CameraView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.titulo}>Histórico de Anamnese</Text>
+
+      <FlatList
+        data={listaAnamnese}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 100 }} // Espaço para não cobrir o último item com o botão
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Image source={{ uri: item.foto }} style={styles.thumb} />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardData}>{new Date(item.id).toLocaleDateString('pt-BR')}</Text>
+              <Text style={styles.cardDescricao} numberOfLines={3}>{item.descricao}</Text>
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>Nenhum registro encontrado.</Text>
+        }
+      />
+
+      <TouchableOpacity style={styles.botaoFlutuante} onPress={() => setMostrarCamera(true)}>
+        <Text style={styles.textoBotao}>+</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
+  container: { flex: 1, backgroundColor: '#f8f9fa', paddingTop: 50 },
+  titulo: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#333' },
+  
+  // Estilos dos Cards
+  card: {
     flexDirection: 'row',
-    gap: 8,
+    backgroundColor: '#fff',
+    marginHorizontal: 15,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 10,
+    // Sombra para Android e iOS
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
+  thumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#eee'
+  },
+  cardInfo: {
+    flex: 1,
+    marginLeft: 15,
+    justifyContent: 'center'
+  },
+  cardData: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4
+  },
+  cardDescricao: {
+    fontSize: 15,
+    color: '#444',
+    lineHeight: 20
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
+    color: '#999',
+    fontSize: 16
+  },
+
+  // Botões e Câmera
+  botaoFlutuante: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    backgroundColor: '#2e7d32', // Cor combinando com o botão salvar
+    width: 65,
+    height: 65,
+    borderRadius: 33,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5
+  },
+  textoBotao: { color: 'white', fontSize: 35, fontWeight: '300' },
+  overlayCamera: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', marginBottom: 40 },
+  botaoCaptura: { width: 75, height: 75, borderRadius: 40, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center' },
+  botao: { backgroundColor: '#ddd', padding: 20, margin: 50, alignItems: 'center', borderRadius: 10 }
 });
