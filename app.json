@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.seuusuario.fotoapp" 
     },
     "web": {
       "output": "static",
@@ -27,6 +28,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que o app acesse a câmera para tirar fotos."
+        }
+      ],
       [
         "expo-splash-screen",
         {
